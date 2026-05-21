@@ -29,7 +29,7 @@ local ARGO_AUTH=${12}
   else
     echo "Argo已设置固定域名：${ARGO_DOMAIN}"
   fi
-  remote_command="export reym=$REALITY UUID=$SUUID vless_port=$TCP1_PORT vmess_port=$TCP2_PORT hy2_port=$UDP_PORT reset=$RES resport=$REP ARGO_DOMAIN=${ARGO_DOMAIN} ARGO_AUTH=${ARGO_AUTH} && bash <(curl -Ls https://raw.githubusercontent.com/yonggekkk/sing-box-yg/main/serv00keep.sh)"
+  remote_command="export reym=$REALITY UUID=$SUUID vless_port=$TCP1_PORT vmess_port=$TCP2_PORT hy2_port=$UDP_PORT reset=$RES resport=$REP ARGO_DOMAIN=${ARGO_DOMAIN} ARGO_AUTH=${ARGO_AUTH} && bash <(curl -Ls https://raw.githubusercontent.com/KUAILESHANGWEI/sing-box-yg/main/serv00keep.sh)"
   echo "Executing remote command on $HOST as $SSH_USER with command: $remote_command"
   sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no "$SSH_USER@$HOST" "$remote_command"
 }
@@ -51,7 +51,7 @@ else
 fi
 echo "*****************************************************"
 echo "*****************************************************"
-echo "甬哥Github项目  ：github.com/yonggekkk"
+echo "甬哥Github项目  ：github.com/KUAILESHANGWEI"
 echo "甬哥Blogger博客 ：ygkkk.blogspot.com"
 echo "甬哥YouTube频道 ：www.youtube.com/@ygkkk"
 echo "自动远程部署Serv00三合一协议脚本【VPS+软路由】"

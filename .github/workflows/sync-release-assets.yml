@@ -1,0 +1,99 @@
+name: Sync release assets
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TARGET_REPO: ${{ github.repository }}
+      UPSTREAM_PROJECT: yonggekkk/sing-box-yg
+      SING_BOX_REPO: SagerNet/sing-box
+      META_RULES_REPO: MetaCubeX/meta-rules-dat
+      CLOUDFLARED_REPO: cloudflare/cloudflared
+      SERV00_REPO: yonggekkk/Cloudflare_vless_trojan
+    steps:
+      - name: Sync upstream and dependency assets
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          workdir="$(mktemp -d)"
+          trap 'rm -rf "$workdir"' EXIT
+
+          ensure_release() {
+            local tag="$1"
+            local title="$2"
+            if ! gh release view "$tag" --repo "$TARGET_REPO" >/dev/null 2>&1; then
+              gh release create "$tag" --repo "$TARGET_REPO" --title "$title" --notes "Automated asset mirror."
+            fi
+          }
+
+          upload_asset() {
+            local tag="$1"
+            local url="$2"
+            local name="$3"
+            local out="$workdir/$name"
+            curl -fL --retry 3 --retry-delay 2 -o "$out" "$url"
+            gh release upload "$tag" "$out#${name}" --repo "$TARGET_REPO" --clobber
+          }
+
+          sync_release_assets() {
+            local source_repo="$1"
+            local source_tag="$2"
+            local target_tag="$3"
+            local title="$4"
+            local release_json assets count id name url
+            release_json="$(gh api "repos/${source_repo}/releases/tags/${source_tag}")"
+            ensure_release "$target_tag" "$title"
+            count="$(jq '.assets | length' <<<"$release_json")"
+            for ((i=0; i<count; i++)); do
+              id="$(jq -r ".assets[$i].id" <<<"$release_json")"
+              name="$(jq -r ".assets[$i].name" <<<"$release_json")"
+              url="https://api.github.com/repos/${source_repo}/releases/assets/${id}"
+              curl -fL \
+                -H "Accept: application/octet-stream" \
+                -H "Authorization: Bearer ${GH_TOKEN}" \
+                -o "$workdir/$name" \
+                "$url"
+              gh release upload "$target_tag" "$workdir/$name#${name}" --repo "$TARGET_REPO" --clobber
+            done
+          }
+
+          latest_tag() {
+            gh api "repos/$1/releases/latest" --jq '.tag_name'
+          }
+
+          upstream_latest="$(latest_tag "$UPSTREAM_PROJECT" || true)"
+          if [[ -n "$upstream_latest" && "$upstream_latest" != "null" ]]; then
+            sync_release_assets "$UPSTREAM_PROJECT" "$upstream_latest" "upstream-${upstream_latest}" "Upstream sing-box-yg ${upstream_latest}"
+          fi
+
+          sing_latest="$(latest_tag "$SING_BOX_REPO")"
+          sync_release_assets "$SING_BOX_REPO" "$sing_latest" "$sing_latest" "sing-box ${sing_latest}"
+          sync_release_assets "$SING_BOX_REPO" "v1.10.7" "v1.10.7" "sing-box v1.10.7"
+
+          ensure_release "cloudflared" "cloudflared latest"
+          upload_asset "cloudflared" "https://github.com/${CLOUDFLARED_REPO}/releases/latest/download/cloudflared-linux-amd64" "cloudflared-linux-amd64"
+          upload_asset "cloudflared" "https://github.com/${CLOUDFLARED_REPO}/releases/latest/download/cloudflared-linux-arm64" "cloudflared-linux-arm64"
+
+          meta_latest="$(latest_tag "$META_RULES_REPO")"
+          sync_release_assets "$META_RULES_REPO" "$meta_latest" "meta-rules-dat" "meta-rules-dat ${meta_latest}"
+
+          ensure_release "meta-rules-dat-srs" "meta-rules-dat SRS files"
+          upload_asset "meta-rules-dat-srs" "https://raw.githubusercontent.com/${META_RULES_REPO}/sing/geo/geosite/google-gemini.srs" "geosite-google-gemini.srs"
+          upload_asset "meta-rules-dat-srs" "https://raw.githubusercontent.com/${META_RULES_REPO}/sing/geo/geosite/geolocation-!cn.srs" "geosite-geolocation-not-cn.srs"
+          upload_asset "meta-rules-dat-srs" "https://raw.githubusercontent.com/${META_RULES_REPO}/sing/geo/geosite/geolocation-cn.srs" "geosite-geolocation-cn.srs"
+          upload_asset "meta-rules-dat-srs" "https://raw.githubusercontent.com/${META_RULES_REPO}/sing/geo/geoip/cn.srs" "geoip-cn.srs"
+
+          sync_release_assets "$SERV00_REPO" "serv00" "serv00" "serv00 runtime binaries"
+
+          ensure_release "acme-sh" "acme.sh source snapshot"
+          upload_asset "acme-sh" "https://github.com/Neilpang/acme.sh/archive/master.tar.gz" "master.tar.gz"

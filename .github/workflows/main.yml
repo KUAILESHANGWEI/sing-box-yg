@@ -20,12 +20,12 @@ jobs:
       run: |
         IFS=$',， ' read -r -a http <<< "${{ secrets.http }}"
          echo "*****************************************************"
-         echo "甬哥Github项目  ：github.com/yonggekkk"
+         echo "甬哥Github项目  ：github.com/KUAILESHANGWEI"
          echo "甬哥Blogger博客 ：ygkkk.blogspot.com"
          echo "甬哥YouTube频道 ：www.youtube.com/@ygkkk"
          echo "🎉Github定时运行serv00保活网页🎉"
          echo "请先确认已成功安装甬哥的serv00的SSH脚本或者Github/VPS/软路由脚本"
-         echo "脚本地址：https://github.com/yonggekkk/sing-box-yg"
+         echo "脚本地址：https://github.com/KUAILESHANGWEI/sing-box-yg"
          echo "*****************************************************"
         for url in "${http[@]}"; do
           response=$(curl -sk "$url" || true)
